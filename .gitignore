@@ -1,0 +1,9 @@
+integracionKafkaConsumer/node_modules
+integracionKafkaConsumer/.env
+integracionKafkaConsumer/package-lock.json
+integracionKafkaConsumer/.gitignore
+
+integracionKafkaProducer/node_modules
+integracionKafkaProducer/.env
+integracionKafkaProducer/package-lock.json
+integracionKafkaProducer/.gitignore
