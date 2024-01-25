@@ -25,13 +25,12 @@ const producer = kafkaProducer()
 
 /**Endpoint post de un mensaje */
 app.post('/mensaje', async (req, res) => {
+  const { frase } = req.body
+  const topic = 'orders'
+  /**Se guarda en la BD */
+  const id = await saveMessage({ value: frase, topic });
   try {
-    const { frase } = req.body
     await producer.connect()
-
-    /**Se guarda en la BD */
-    const id = await saveMessage(frase)
-
     try {
       console.log(JSON.stringify({ id: id, value: frase }))
       await producer.send({
@@ -62,11 +61,48 @@ app.post('/mensaje', async (req, res) => {
   }
 })
 
+app.post('/mensaje2', async (req, res) => {
+  const { frase } = req.body
+  const topic = 'orders2'
+  /**Se guarda en la BD */
+  const id = await saveMessage({ value: frase, topic })
+  try {
+    await producer.connect()
+    try {
+      console.log(JSON.stringify({ id: id, value: frase }))
+      await producer.send({
+        topic: topic,
+        messages: [{ value: JSON.stringify({ id: id, value: frase }) }],
+      });
+
+      await Message.findByIdAndUpdate(id, { sendStatus: 'enviado' });
+
+      console.log('Mensaje enviado: ' + frase)
+      res.status(200).json({ success: true, message: 'Mensaje enviado: ' + frase })
+    
+    } catch (error) {
+      /**Actualiza en caso de error */
+      await Message.findByIdAndUpdate(id, { sendStatus: 'error' });
+      console.error(error)
+      res.status(500).json({ success: false, error: 'Error al enviar el mensaje' })
+    
+    } finally{
+      await producer.disconnect()
+    }
+  } catch (error) {
+    /**Actualiza en caso de error */
+    await Message.findByIdAndUpdate(id, { sendStatus: 'error' });
+    console.error(error)
+    res.status(500).json({ success: false, error: 'Error en la conexión con kafka' })
+  
+  }
+})
+
 
 /**Metodo para guardar en la BD */
-async function saveMessage(value) {
+async function saveMessage({ value, topic }) {
   try {
-    const newMessage = new Message({ value })
+    const newMessage = new Message({ value, topic });
     await newMessage.save()
     console.log('Se guardo: ', newMessage)
     return newMessage._id
@@ -92,7 +128,7 @@ async function sendPendingMessages() {
     try {
       await producer.connect()
       await producer.send({
-        topic: 'orders',
+        topic: message.topic,
         messages: [{ value: JSON.stringify({ id: message._id, value: message.value }) }],
       })
 
@@ -120,7 +156,7 @@ async function sendPendingMessages() {
 
 /**Envio constante mensajes con error o pendientes */
 setInterval(() => {
-  console.log('Enviando Registros Pendientes - Error')
+  console.log('Enviando Registros Pendientes y con Error')
   sendPendingMessages().catch(console.error)
 }, DELIVERY_INTERVAL)
 
@@ -128,7 +164,7 @@ setInterval(() => {
 /**Se inicia el proyecto */
 const startServer = async () => {
   try {
-    await producer.connect()
+    //await producer.connect()
     app.listen(port, () => {
       console.log(`Servidor escuchando en el puerto ${port}`)
     })

@@ -7,6 +7,7 @@ const messageSchema = new mongoose.Schema(
     receiveStatus: { type: String, default: 'pendiente' }, //pendiente, error, recibido
     deliveryAttempts: { type: Number, default: 0 }, //numero de intentos de entrega
     lastDeliveryAttempt: { type: Date }, //fecha ultimo intento de entrega
+    topic: { type: String }, //topic
     createdAt: { type: Date, default: Date.now }, //creación
     updatedAt: { type: Date }, //última actualización
   }
